@@ -20,37 +20,8 @@ def normalize_for_display(img):
         img[:,:,i] = (img[:,:,i] - np.min(img[:,:,i]))/(np.max(img[:,:,i])-np.min(img[:,:,i])+1e-5)
     return img
 
-def crop_patch_disp(img, patch):
-    """
-    Args:
-        [img]   Shape:HxW   Grayscale image.
-        [xmin]  Int         Minimum index on x-axis (i.e., along the width)
-        [xmax]  Inta        Maximum index on x-axis (i.e., alone the width)
-        [ymin]  Int         Minimum index on y-axis (i.e., along the height)
-        [ymax]  Int         Minimum index on y-axis (i.e., along the height)
-    Rets:
-        Image of shape up to (ymax-ymin, xmax-xmin).
-        If the index range goes outside the image, the return patch will be cropped.
-    """
-    xmin = int(patch[0])
-    ymin = int(patch[1])
-    xmax = int(patch[2])
-    ymax = int(patch[3])
-    newimg = np.zeros((ymax-ymin, xmax-xmin, img.shape[2]))
-    lby = np.maximum(ymin, 0)
-    uby = np.minimum(ymax, img.shape[0])
-    lbx = np.maximum(xmin, 0)
-    ubx = np.minimum(xmax, img.shape[1])
-    newimg[lby-ymin:uby-ymin, lbx-xmin:ubx-xmin,:] = img[lby:uby, lbx:ubx,:]
-    return newimg
-def merge_annots(annots):
-    gtfoci = annots['foci']
-    for a in gtfoci:
-        if [] in a:
-            a.remove([])
 
-    gtfoci = [np.array(x) for x in gtfoci if len(x)>0]
-    return np.concatenate(gtfoci,axis=0)
+
 class FociDetector(nn.Module):
     def __init__(self, input_channels=3, input_size=17, ksize=5,hidden_channels=10):
         super(FociDetector,self).__init__()
@@ -79,42 +50,13 @@ class FociDetector(nn.Module):
 
 
 
-class MultiChannelFociDetector(nn.Module):
-    def __init__(self, input_size=17, ksize=5, hidden_channels=10):
-        super(MultiChannelFociDetector,self).__init__()
-        self.channel1 = FociDetector(input_channels=1,input_size=input_size, ksize=ksize, hidden_channels=hidden_channels)
-        self.channel2 = FociDetector(input_channels=1,input_size=input_size, ksize=ksize, hidden_channels=hidden_channels)
-        self.scale_estimator = scale_estimator.ScaleEstimator()
-    def forward(self, x):
-        scale, bias = self.scale_estimator(x)
-        x = x*scale+bias
-        output1 = self.channel1(x[:,[0],:,:])
-        output2 = self.channel2(x[:,[1],:,:])
-        return torch.min(output1, output2)
 
-class MultiChannelSimpleScorer(nn.Module):
-    def __init__(self):
-        super(MultiChannelSimpleScorer, self).__init__()
-        self.scale_estimator = scale_estimator.ScaleEstimator()
-
-    def forward(self, x):
-        scale, bias = self.scale_estimator(x)
-        x = x*scale + bias
-        return torch.min(x[:,[0],:,:], x[:,[1],:,:])
 class MultiChannelCombinedScorer(nn.Module):
     def __init__(self,input_size=17, ksize=5, hidden_channels=10):
         super(MultiChannelCombinedScorer, self).__init__()
-        #self.scale_estimator = scale_estimator.ScaleEstimator()
         self.channel1 = FociDetector(input_channels=1,input_size=input_size, ksize=ksize, hidden_channels=hidden_channels)
         self.channel2 = FociDetector(input_channels=1,input_size=input_size, ksize=ksize, hidden_channels=hidden_channels)
-        #self.upsample = nn.Upsample(scale_factor=8, mode='nearest')
     def forward(self,x):
-
-        #upsample = nn.Upsample(size=(x.shape[2],x.shape[3]))
-        #scale, bias = self.scale_estimator(x)
-        #print("scale=", scale)
-        #print("bias=", bias)
-        #x = x*scale+bias
         output1 = torch.sigmoid(F.interpolate(self.channel1(x[:,[0],:,:]), size=(x.shape[2],x.shape[3])))
         output2 = torch.sigmoid(F.interpolate(self.channel2(x[:,[1],:,:]), size=(x.shape[2],x.shape[3])))
         output3 = torch.sigmoid(x[:,[0],:,:])
@@ -128,174 +70,6 @@ class MultiChannelCombinedScorer(nn.Module):
         return output1, output2, output3, output4
 
 
-def get_positive_patches(point_list, half_patch_size):
-
-    mins = np.round(point_list-half_patch_size).astype(int)
-    maxes = mins+2*half_patch_size+1
-    patches = np.concatenate((mins, maxes), axis=1)
-    return patches
-
-
-def get_negative_patches(image_region, num, half_patch_size):
-    image_region = np.array(image_region).reshape((1,4))
-    center = np.random.rand(num,2)
-    center = image_region[:,:2] + center*(image_region[:,2:]-image_region[:,:2])
-    minpatch = np.round(center - half_patch_size).astype(int)
-    maxpatch = minpatch + 2*half_patch_size+1
-    patches = np.concatenate((minpatch, maxpatch),axis=1)
-    return patches
-
-def crop_patch(img, patch):
-    """
-    Args:
-        [img]   Shape:HxW   Grayscale image.
-        [xmin]  Int         Minimum index on x-axis (i.e., along the width)
-        [xmax]  Inta        Maximum index on x-axis (i.e., alone the width)
-        [ymin]  Int         Minimum index on y-axis (i.e., along the height)
-        [ymax]  Int         Minimum index on y-axis (i.e., along the height)
-    Rets:
-        Image of shape up to (ymax-ymin, xmax-xmin).
-        If the index range goes outside the image, the return patch will be cropped.
-    """
-    xmin = int(patch[0])
-    ymin = int(patch[1])
-    xmax = int(patch[2])
-    ymax = int(patch[3])
-    newimg = np.zeros((img.shape[0],ymax-ymin, xmax-xmin))
-    lby = np.maximum(ymin, 0)
-    uby = np.minimum(ymax, img.shape[1])
-    lbx = np.maximum(xmin, 0)
-    ubx = np.minimum(xmax, img.shape[2])
-    newimg[:,lby-ymin:uby-ymin, lbx-xmin:ubx-xmin] = img[:,lby:uby, lbx:ubx]
-    return newimg
-
-
-class FociPatchDataset(torch.utils.data.Dataset):
-    def __init__(self, rootdir, train_files,half_patch_size=8, pos_frac = 0.25, mean_patch=None, std_patch=None):
-        super(FociPatchDataset, self).__init__()
-        train_imgs = [os.path.join(rootdir, 'imgs', x+'.tif') for x in train_files]
-        train_annots = [os.path.join(rootdir, 'annots', x+'.json') for x in train_files]
-        patches = []
-        labels = []
-        image_ids = []
-        for i, e in enumerate(train_annots):
-            with open(e,'r') as f:
-                annot = json.load(f)
-
-            foci = annot['foci']
-            pos_patches_this = []
-            neg_patches_this = []
-            for x in foci:
-                if [] in x:
-                    x.remove([])
-                if len(x)==0:
-                    continue
-                x = np.array(x)
-                patches_tmp = get_positive_patches(x, half_patch_size)
-                pos_patches_this.append(patches_tmp)
-            if len(pos_patches_this)==0:
-
-                continue
-
-            pos_patches_this = np.concatenate(pos_patches_this, axis=0)
-            neg_patches_this.append(pos_patches_this + np.array([[-4,0,-4,0]]))
-            neg_patches_this.append(pos_patches_this + np.array([[4,0,4,0]]))
-            neg_patches_this.append(pos_patches_this + np.array([[0,-4,0,-4]]))
-            neg_patches_this.append(pos_patches_this + np.array([[0,4,0,4]]))
-
-            img = tifffile.imread(train_imgs[i])
-            imshape = img[0,:,:].shape
-            neg_patches_this.append(get_negative_patches([0,0,imshape[1],imshape[0]],pos_patches_this.shape[0]*4, half_patch_size))
-            neg_patches_this = np.concatenate(neg_patches_this, axis=0)
-            num_neg = int(pos_patches_this.shape[0]*(1-pos_frac)/pos_frac)
-            neg_patches_this = neg_patches_this[np.random.choice(neg_patches_this.shape[0],num_neg),:]
-
-
-            patches_this = np.concatenate((pos_patches_this, neg_patches_this), axis=0)
-            labels_this = np.concatenate((np.ones(pos_patches_this.shape[0]), np.zeros(neg_patches_this.shape[0])))
-            image_ids_this = np.ones(patches_this.shape[0], dtype='int32')*i
-
-            patches.append(patches_this)
-            labels.append(labels_this)
-            image_ids.append(image_ids_this)
-
-        patches = np.concatenate(patches, axis=0)
-        labels = np.concatenate(labels, axis=0)
-        image_ids = np.concatenate(image_ids, axis=0)
-        self.patches = patches
-        self.labels = labels
-        self.image_ids = image_ids
-        self.patches_img = np.zeros((self.patches.shape[0],3,2*half_patch_size+1, 2*half_patch_size+1))
-        for i, annotfile in enumerate(train_annots):
-
-
-            imgpath = train_imgs[i]
-            img = tifffile.imread(imgpath)
-            img = img[:3,:,:]
-            patchidx = np.where(self.image_ids==i)[0]
-            for p in patchidx:
-                patch = crop_patch(img, self.patches[p])
-                self.patches_img[p,:,:,:] = patch
-        #normalize
-        if mean_patch is None:
-            mean_patch = np.mean(self.patches_img)
-        if std_patch is None:
-            std_patch = np.std(self.patches_img)
-        self.patches_img = self.patches_img - mean_patch
-
-        self.patches_img = self.patches_img / std_patch
-        self.mean_std = (mean_patch, std_patch)
-    def __getitem__(self,i):
-        img = self.patches_img[i,:,:,:].copy()
-        #random noise
-        img = img + np.random.randn(*img.shape)*np.random.rand(1)*0.1
-
-        #random data augmentation using scale and bias
-        scale = 0.5 + 0.5*np.random.rand(1)
-        bias = np.random.rand(1)
-        img = img*scale + bias
-        label = self.labels[i]
-        return torch.Tensor(img), np.float32(label)
-    def __len__(self):
-        return self.patches_img.shape[0]
-def train_model(model, rootdir, train_files,batchsize=64,\
- lr=0.01, momentum=0.9, weight_decay=0.0001, num_epochs=10, mean_patch=277,std_patch=186):
-
-    optimizer = torch.optim.SGD(model.parameters(),lr, momentum=momentum, weight_decay=weight_decay)
-    loss_fn = nn.BCEWithLogitsLoss()
-
-
-
-    for epoch in range(num_epochs):
-        dataset = FociPatchDataset(rootdir,train_files, mean_patch=mean_patch, std_patch=std_patch, pos_frac=0.4)
-        data_loader = torch.utils.data.DataLoader(dataset, batch_size=batchsize,shuffle=True)
-        num_classes = int(np.max(dataset.labels)+1)
-        total_loss = 0
-        acc = 0
-        count = 0
-        for i, (x,y) in enumerate(data_loader):
-            optimizer.zero_grad()
-            x_var = Variable(x)
-            y_var = Variable(y)
-            pred_var = model(x_var)
-            loss_val = loss_fn(pred_var.view(pred_var.size(0)),y_var)
-            loss_val.backward()
-            optimizer.step()
-            total_loss = total_loss + loss_val.data[0]
-            pred_scores = pred_var.data.numpy()
-            pred_scores = pred_scores.reshape(-1)
-
-            pred_labels = pred_scores>0
-            acc = acc + np.sum(pred_labels==y.numpy().reshape(-1))
-            count = count + y.size(0)
-            if i%10 == 0:
-                print('Epoch: {:d}, Iter: {:d}, Loss: {:.3f}, Accuracy: {:.3f}'.format(epoch,i,total_loss/(float(i+1)), acc/float(count)))
-
-
-
-        #torch.save(model.state_dict(), str(epoch)+'.pt')
-
-    return model
 
 class FociDataset(torch.utils.data.Dataset):
     def __init__(self, rootdir, train_files,stride=1, half_patch_size=8, crop_size=512, mean_patch=None,std_patch=None):

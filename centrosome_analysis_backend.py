@@ -3,7 +3,7 @@ from scipy.cluster.hierarchy import linkage, fcluster
 from scipy.ndimage.measurements import label
 import torch
 import ml_foci_detect
-import grouping
+import ml_cell_segmentation
 import os
 import cell_segmentation
 import eb3 as eb3_analysis
@@ -16,7 +16,7 @@ def load_foci_model(foci_model_file):
 
 def load_cell_model(cell_model_file):
 
-    model = grouping.GroupingModel(use_scale_estimator=False)
+    model = ml_cell_segmentation.CellSegmentationModel(use_scale_estimator=False)
     x = torch.load(cell_model_file)
 
     model.load_state_dict(x)
@@ -28,13 +28,13 @@ def run_detection_model(img, foci_model, mean, std):
     foci, foci_scores = ml_foci_detect.nonmax(scores, 500)
     foci = foci.astype(int)
     return foci, foci_scores
-def run_cell_model(img, grouping_model, mean, std):
+def run_cell_model(img, ml_cell_segmentation_model, mean, std):
     #the cell model seems to be sensitive to absolute brightness and contrast of the image
 
     img = img.astype(float)
     mean = np.mean(img)
     std = np.std(img)/10
-    cell_prob = grouping.apply_model(grouping_model,img, mean, std)
+    cell_prob = ml_cell_segmentation.apply_model(ml_cell_segmentation_model,img, mean, std)
     cell_bmap = cell_segmentation.compute_cell_bmap(cell_prob)
     return cell_prob, cell_bmap
 
@@ -99,7 +99,7 @@ def cell_analysis(detections, labels):
 
 def intensity_profile(img, detections, labels, chosen_for_analysis, cell_map,radii, bgradii):
     unique_labels = np.unique(labels)
-    
+
     y, x = np.unravel_index(np.arange(img.size), img.shape)
     y = y.reshape(img.shape)
     x = x.reshape(img.shape)

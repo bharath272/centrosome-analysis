@@ -16,9 +16,9 @@ from skimage.transform import resize
 
 
 
-class GroupingModel(nn.Module):
+class CellSegmentationModel(nn.Module):
     def __init__(self,input_channels=3, hidden_channels=10, ksize=5, use_scale_estimator=True):
-        super(GroupingModel, self).__init__()
+        super(CellSegmentationModel, self).__init__()
         p = int((ksize-1)/2)
         print(p)
         self.use_scale_estimator = use_scale_estimator

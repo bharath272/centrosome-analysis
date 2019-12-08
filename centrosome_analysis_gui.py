@@ -20,7 +20,7 @@ import argparse
 from scipy.ndimage.measurements import label
 from scipy.ndimage.morphology import distance_transform_edt
 import ml_foci_detect
-import grouping
+import ml_cell_segmentation
 import torch
 from tkinter import messagebox
 import centrosome_analysis_backend
@@ -368,7 +368,7 @@ class AnalysisGUI:
 
         self.save_file = None
         self.foci_model = None
-        self.grouping_model = None
+        self.ml_cell_segmentation_model = None
         self.ml_model_has_run=False
         tkinter.mainloop()
 
@@ -624,7 +624,7 @@ class AnalysisGUI:
 
     def load_cell_model(self):
         cell_model_file = askopenfilename(initialdir='.')
-        self.grouping_model = centrosome_analysis_backend.load_cell_model(cell_model_file)
+        self.ml_cell_segmentation_model = centrosome_analysis_backend.load_cell_model(cell_model_file)
         messagebox.showinfo('','Cell segmentation model loaded')
 
     def run_detection_model(self, img):
@@ -634,10 +634,10 @@ class AnalysisGUI:
         foci, foci_scores = centrosome_analysis_backend.run_detection_model(img, self.foci_model, self.mean, self.std)
         return foci, foci_scores
     def run_cell_model(self, img):
-        if self.grouping_model is None:
+        if self.ml_cell_segmentation_model is None:
             messagebox.showerror('Error','Cell segmentation model not loaded')
             return
-        cell_prob, cell_bmap = centrosome_analysis_backend.run_cell_model(img, self.grouping_model, self.mean, self.std)
+        cell_prob, cell_bmap = centrosome_analysis_backend.run_cell_model(img, self.ml_cell_segmentation_model, self.mean, self.std)
         return cell_prob, cell_bmap
 
     def _open(self):

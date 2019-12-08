@@ -8,7 +8,7 @@ import tifffile
 
 
 
-def do_analysis_single(filename, channelorder, results_file, foci_model, grouping_model, mean, std, radii, bgradii, det_thresh, cell_thresh):
+def do_analysis_single(filename, channelorder, results_file, foci_model, ml_cell_seg_model, mean, std, radii, bgradii, det_thresh, cell_thresh):
     print(filename)
 
     detection_file = os.path.splitext(filename)[0]+'.json'
@@ -23,7 +23,7 @@ def do_analysis_single(filename, channelorder, results_file, foci_model, groupin
         json.dump(dict(foci=foci.tolist(),foci_scores=foci_scores.tolist()), f)
 
 
-    cell_probabilities, cell_bmap = centrosome_analysis_backend.run_cell_model(img, grouping_model, mean, std)
+    cell_probabilities, cell_bmap = centrosome_analysis_backend.run_cell_model(img, ml_cell_seg_model, mean, std)
     np.savez(cell_probability_file, cell_probs=cell_probabilities, cell_bmap = cell_bmap)
     print(np.sum(foci_scores>det_thresh))
     if np.sum(foci_scores>det_thresh)==0:

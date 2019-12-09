@@ -72,14 +72,13 @@ class MultiChannelCombinedScorer(nn.Module):
 
 
 class FociDataset(torch.utils.data.Dataset):
-    def __init__(self, rootdir, train_files,stride=1, half_patch_size=8, crop_size=512, mean_patch=None,std_patch=None):
-        train_imgs = [os.path.join(rootdir, 'imgs', x+'.tif') for x in train_files]
-        train_annots = [os.path.join(rootdir, 'annots', x+'.json') for x in train_files]
+    def __init__(self, train_files):
+        train_imgs = [x[0] for x in train_files]
+        train_annots = [x[1] for x in train_files]
         self.images = []
         self.labelmaps = []
         self.weights = []
-        self.crop_size = crop_size
-        self.hps = half_patch_size
+        stride=1
         mean = 0
         sqmean = 0
 
@@ -126,7 +125,6 @@ class FociDataset(torch.utils.data.Dataset):
         self.labelmaps = np.concatenate(self.labelmaps, axis=0)
         self.weights = np.concatenate(self.weights, axis=0)
         print(self.images.shape, self.labelmaps.shape, self.weights.shape)
-        #self.labelmaps = self.labelmaps[:,half_patch_size:-half_patch_size, half_patch_size:-half_patch_size]
         mean = np.mean(self.images)
         self.images = self.images - mean
         std = np.std(self.images)
@@ -136,19 +134,7 @@ class FociDataset(torch.utils.data.Dataset):
 
     def __getitem__(self,i):
         notdone=True
-        # while(notdone):
-        #     starty = 0#np.random.choice(self.images.shape[2]-self.crop_size)
-        #     startx = 0#np.random.choice(self.images.shape[3]-self.crop_size)
-        #     tmp_labelmap = self.labelmaps[i,starty:(starty+self.crop_size),startx:(startx+self.crop_size)]
-        #     if np.sum(tmp_labelmap)==0:
-        #         notdone=True
-        #     else:
-        #         notdone=False
-
-
-        #img = self.images[i,:,starty:(starty+self.crop_size),startx:(startx+self.crop_size)].copy()
         img = self.images[i,:,:,:].copy()
-        #random noise
         img = img + np.random.randn(*img.shape)*np.random.rand(1)*0.1
 
         #random data augmentation using scale and bias
@@ -170,12 +156,8 @@ class FociDataset(torch.utils.data.Dataset):
             img[c,:,:] = img[c,:,:] + w*gauss.reshape((img.shape[1],img.shape[2]))
 
         img = torch.Tensor(img)
-        #labelmap = self.labelmaps[i,starty:(starty+self.crop_size),startx:(startx+self.crop_size)].copy()
-        #labelmap = labelmap[self.hps:-self.hps,self.hps:-self.hps]
         labelmap = self.labelmaps[i,:,:]
         labelmap = torch.Tensor(labelmap)
-        #weight = self.weights[i,starty:(starty+self.crop_size),startx:(startx+self.crop_size)].copy()
-        #weight = weight[self.hps:-self.hps,self.hps:-self.hps]
         weight = self.weights[i,:,:]
         weight = torch.Tensor(weight)
         return img, labelmap,weight
@@ -190,15 +172,15 @@ def compute_focal_loss_weights(scores, targets,gamma):
     weights = oneminuspt**gamma
     return weights
 
-def train_model_fcn(model, rootdir, train_files,stride=1, batchsize=1, need_sigmoid=False, \
- lr=0.01, momentum=0.9, weight_decay=0.0001, num_epochs=100,checkpointdir='checkpoints', gamma=None):
+def train_model_fcn(model, train_files,batchsize=1, need_sigmoid=False, \
+ lr=0.01, momentum=0.9, weight_decay=0.0001, num_epochs=100,checkpointdir='checkpoints', savecheckpoints=False,gamma=None):
 
     optimizer = torch.optim.SGD(model.parameters(),lr, momentum=momentum, weight_decay=weight_decay)
 
-    dataset = FociDataset(rootdir,train_files, stride=stride)
+    dataset = FociDataset(train_files)
     data_loader = torch.utils.data.DataLoader(dataset, batch_size=batchsize,shuffle=True)
 
-    checkpointdir = os.path.join(rootdir, checkpointdir)
+    
     if not os.path.isdir(checkpointdir):
         os.makedirs(checkpointdir)
 
@@ -239,17 +221,18 @@ def train_model_fcn(model, rootdir, train_files,stride=1, batchsize=1, need_sigm
             tn = fn + np.sum((1-pred_labels)*(1-true_labels))
 
             count = count + y.size(0)
-            if i%1 == 0:
-                prec = tp/(tp+fp)
-                rec = tp/(tp+fn)
-                print('Epoch: {:d}, Iter: {:d}, Loss: {:.3f}, Precision: {:.3f}, Recall: {:.3f}'.format(epoch,i,total_loss/(float(i+1)), prec,rec))
+
+        prec = tp/(tp+fp)
+        rec = tp/(tp+fn)
+        print('Epoch: {:d}, Loss: {:.3f}, Precision: {:.3f}, Recall: {:.3f}'.format(epoch,total_loss/(float(i+1)), prec,rec))
 
 
         thisdir = os.path.join(checkpointdir, str(epoch))
 
         if not os.path.isdir(thisdir):
             os.makedirs(thisdir)
-        torch.save(model.state_dict(), os.path.join(thisdir, 'weights.pt'))
+        if savecheckpoints:
+            torch.save(model.state_dict(), os.path.join(thisdir, 'weights.pt'))
 
 
     return model

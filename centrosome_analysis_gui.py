@@ -388,6 +388,7 @@ class AnalysisGUI:
     def create_file_menu(self):
         self.file_menu = tkinter.Menu(master=self.menubar, tearoff=0)
         self.file_menu.add_command(label="Analyze and save", command=self._save)
+        self.file_menu.add_command(label="Save corrections", command=self._save_foci_cellmap)
         self.file_menu.add_command(label="Open image", command=self._open)
         self.file_menu.add_command(label="Load Centrosome Detector", command=self.load_foci_model)
         self.file_menu.add_command(label="Load Cell Model", command=self.load_cell_model)
@@ -855,7 +856,7 @@ class AnalysisGUI:
             mt_step = float(self.eb3stepvar.get())
             radii = np.arange(mt_step, mt_max_radius, mt_step)
             radii_pixels = radii/pixelscale
-            bgradii_pixels = bgradii/pixelscale
+            bgradii_pixels = self.bgradii/pixelscale
             #density on MT
             mt_channel = int(self.mt_channel_var.get())-1
             img_for_analysis = self.img[mt_channel,:,:]
@@ -868,13 +869,13 @@ class AnalysisGUI:
             pcm_step = float(self.pcmstepvar.get())
             radii = np.arange(pcm_step, pcm_max_radius, pcm_step)
             radii_pixels = radii/pixelscale
-
+            bgradii_pixels = self.bgradii/pixelscale
             #density on pcm
             pcm_channel = int(self.pcm_channel_var.get())-1
             img_for_analysis = self.img[pcm_channel,:,:]
             intensities, areas, densities = centrosome_analysis_backend.intensity_profile(img_for_analysis,
                                                 self.final_detections, self.final_cell_labels, self.chosen_for_analysis,
-                                                self.cell_map,radii_pixels, self.bgradii_pixels)
+                                                self.cell_map,radii_pixels, bgradii_pixels)
             self.analysis_outcomes = (intensities, areas, densities, radii)
         elif analysis_type==self.analysis_choices[2]:
             mt_max_radius = float(self.eb3radiusvar.get())
@@ -901,6 +902,14 @@ class AnalysisGUI:
                                             radii_pixels, length_thresh, abs_thresh, centrosome=centrin, vis_dir=vis_dir, vis=vis)
             self.analysis_outcomes = (counts, areas, densities, radii)
 
+    def _save_foci_cellmap(self):
+        self.json_file = asksaveasfilename(defaultextension='json')
+        self.cell_map_file = os.path.splitext(self.json_file)[0]+'.npz'
+        print(self.json_file, self.cell_map_file)
+
+        with open(self.json_file, 'w') as f:
+            json.dump(dict(foci=[self.final_detections.tolist()],foci_scores=self.final_detection_scores.tolist()),f)
+        np.savez(self.cell_map_file, cell_probs=self.cell_probabilities, cell_bmap=self.cell_bmap)
 
     def _save(self):
         if self.analysis_outcomes is None:
@@ -909,9 +918,7 @@ class AnalysisGUI:
         if self.save_file is None:
             self.save_file = asksaveasfilename()
 
-        with open(self.json_file, 'w') as f:
-            json.dump(dict(foci=self.final_detections.tolist(),foci_scores=self.final_detection_scores.tolist()),f)
-        np.savez(self.cell_map_file, cell_probs=self.cell_probabilities, cell_bmap=self.cell_bmap)
+
 
         intensities, areas, densities, radii = self.analysis_outcomes
         centrosome_analysis_backend.save_to_csv(self.open_file, self.save_file, intensities, areas, densities, self.amplified, radii)

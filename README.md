@@ -37,7 +37,7 @@ Analysis can be performed through the following steps.
 
 2. Second, click on File->Load cell model. Choose the cell segmentation file `cell_model.pt`. These first two steps only need to be done once per session.
 
-3. Then, to analyze an image, lick on File->Open Image and choose the image you want to analyze. The image will be displayed in false color, with the first channel represented as red, second as green, third as blue and fourth as cyan. The tool currently does not allow for more than 4 channels. Individual channels can be visualized by choosing different options in the `Display` drop down menu in the `Visualization` toolbar.
+3. Then, to analyze an image, lick on File->Open Image and choose the image you want to analyze. The image will be displayed in false color, with the first channel represented as red, second as green, third as blue and fourth as cyan. The tool currently does not allow for more than 4 channels. Individual channels can be visualized by choosing different options in the `Display` drop down menu in the `Visualization` toolbar. You can also zoom into particular regions of the image by clicking the `zoom` button and then identifying a region by clicking aand dragging on the image. Click on `Reset zoom` to return to the original resolution.
 
 4. Next, you will need to choose the channel which represents PCM, the channel which represents Centrin and the channel which represents DAPI in the `Channels` toolbar. PCM and Centrin channels are needed for centrosome detection. Cell segmentation additionally needs DAPI.
 
@@ -60,3 +60,4 @@ Analysis can be performed through the following steps.
    4. Once you have made corrections, you can save these corrections by clicking File->Save corrections.
 
 7. You can now make choices pertaining to the kind of analysis you want to make. Once you have decided the kind of analysis needed and the various parameters of this analysis, click on `Analyze and save` to finish the analysis and save the results. For the first image in a session, you will be prompted for the filename you want to save it to. The filename must be a `csv` file. If the file exists, new results will be appended to the previous results.
+

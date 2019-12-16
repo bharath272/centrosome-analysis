@@ -42,10 +42,13 @@ Analysis can be performed through the following steps.
     1. You can add new centrosomes by first clicking the `Add centrosomes` button and then clicking to add centrosomes.
     2. You can remove spurious foci by first clicking the `Remove centrosomes` button and then clicking on the spurious
     centrosomes.
+
   2. You can make three kinds of corrections to the cell segmentations
     1. You can add cell boundaries that were missed. To do so, click `Add cell boundary` and draw the boundary on the image.
     2. You can merge cells that were wrongly separated. To do so, click `Choose cells to merge`, click on the cells you want to merge and then click `Merge cells`.
     3. You can remove cells from analysis by clicking `Remove cell from analysis` and then clicking `Remove cell from analysis`.
+ 
   3. You can also change the labeling of cells as amplified or not by clicking `Mark cells as amplified` and `Mark cells as not amplified` and clicking on cells.
   4. Once you have made corrections, you can save these corrections by clicking File->Save corrections.
+
 7. You can now make choices pertaining to the kind of analysis you want to make. Once you have decided the kind of analysis needed and the various parameters of this analysis, click on `Analyze and save` to finish the analysis and save the results. For the first image in a session, you will be prompted for the filename you want to save it to. The filename must be a `csv` file. If the file exists, new results will be appended to the previous results.

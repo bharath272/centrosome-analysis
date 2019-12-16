@@ -44,7 +44,7 @@ Analysis can be performed through the following steps.
 6. You can change the threshold for the centrosome detection and cell segmentation. Increasing the threshold for the centrosome detection leads to fewer detections. Increasing the threshold for the cell segmentation leads to more cells.
 
 7. You can also make corrections to the centrosome detections and cell boundaries.
-  1. You can make two kinds of corrections to the centrosome detections:
+   1. You can make two kinds of corrections to the centrosome detections:
     1. You can add new centrosomes by first clicking the `Add centrosomes` button and then clicking to add centrosomes.
     2. You can remove spurious foci by first clicking the `Remove centrosomes` button and then clicking on the spurious
     centrosomes.

@@ -1,5 +1,5 @@
 ![Screenshot]
-(https://github.com/bharath272/centrosome-analysis/blob/master/screenshot.png)
+(screenshot.png)
 
 
 

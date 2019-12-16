@@ -1,4 +1,10 @@
+![Screenshot]
+(https://github.com/bharath272/centrosome-analysis/blob/master/screenshot.png)
+
+
+
 # Installation
+
 To download this package click on `Clone or download`, then click on `Download zip`. 
 Alternatively, click [here](https://github.com/bharath272/centrosome-analysis/archive/master.zip)
 

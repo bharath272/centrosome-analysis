@@ -8,22 +8,26 @@ To install this version of python, install Anaconda by following this [link](htt
 ## Pytorch
 This tool has been tested with **pytorch 0.4.1**
 Install this version of pytorch by running:
-```conda install pytorch=0.4.1 -c pytorch
+```
+conda install pytorch=0.4.1 -c pytorch
 ```
 
 ## Tifffile
 This tool has been tested with **tifffile 0.14.0**
 Install this version of tifffile by running:
-```conda install -c conda-forge tifffile
+```
+conda install -c conda-forge tifffile
 ```
 
 # Running
 To run this tool, first open the Terminal.
 Change into the directory containing this code
-```cd /path/to/centrosome-analysis
+```
+cd /path/to/centrosome-analysis
 ```
 Then run centosome_analysis_gui.py
-```python centrosome_analysis_gui.py
+```
+python centrosome_analysis_gui.py
 ```
 
 Analysis can be performed through the following steps.

@@ -1,17 +1,17 @@
-#Installation
+# Installation
 
 ## Python
 
 This tool has been tested with **Anaconda**, **python 3.6.8**.
 To install this version of python, install Anaconda by following this [link](https://docs.anaconda.com/anaconda/install/). Follow links for downloading the Python 3.7 version.
 
-##Pytorch
+## Pytorch
 This tool has been tested with **pytorch 0.4.1**
 Install this version of pytorch by running:
 ```conda install pytorch=0.4.1 -c pytorch
 ```
 
-##Tifffile
+## Tifffile
 This tool has been tested with **tifffile 0.14.0**
 Install this version of tifffile by running:
 ```conda install -c conda-forge tifffile
@@ -43,4 +43,4 @@ Analysis can be performed through the following steps.
     3. You can remove cells from analysis by clicking `Remove cell from analysis` and then clicking `Remove cell from analysis`.
   3. You can also change the labeling of cells as amplified or not by clicking `Mark cells as amplified` and `Mark cells as not amplified` and clicking on cells.
   4. Once you have made corrections, you can save these corrections by clicking File->Save corrections.
-7. You can now make choices pertaining to the kind of analysis you want to make. Once you have decided the kind of analysis needed and the various parameters of this analysis, click on `Analyze and save` to finish the analysis and save the results. For the first image in a session, you will be prompted for the filename you want to save it to. The filename must be a `csv` file. If the file exists, new results will be appended to the previous results. 
+7. You can now make choices pertaining to the kind of analysis you want to make. Once you have decided the kind of analysis needed and the various parameters of this analysis, click on `Analyze and save` to finish the analysis and save the results. For the first image in a session, you will be prompted for the filename you want to save it to. The filename must be a `csv` file. If the file exists, new results will be appended to the previous results.

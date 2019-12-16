@@ -32,11 +32,17 @@ python centrosome_analysis_gui.py
 
 Analysis can be performed through the following steps.
 1. First, click on File->Load centrosome detector. Choose the centrosome detector file `foci_model.pt`
+
 2. Second, click on File->Load cell model. Choose the cell segmentation file `cell_model.pt`. These first two steps only need to be done once per session.
+
 3. Then, to analyze an image, lick on File->Open Image and choose the image you want to analyze. The image will be displayed in false color, with the first channel represented as red, second as green, third as blue and fourth as cyan. The tool currently does not allow for more than 4 channels. Individual channels can be visualized by choosing different options in the `Display` drop down menu in the `Visualization` toolbar.
+
 4. Next, you will need to choose the channel which represents PCM, the channel which represents Centrin and the channel which represents DAPI in the `Channels` toolbar. PCM and Centrin channels are needed for centrosome detection. Cell segmentation additionally needs DAPI.
+
 5. Next, click on `Run ML models` to run the centrosome detector and the cell segmentation. These models will be run on the image and the results displayed as an overlay on the image. The cell segmentation will be shown as colored boundaries, with the boundaries being thick if the model thinks the cell is centrosome-amplified (more than 4 centrosomes detected). Centrosomes will be depicted either as circles or with a `+` sign (the tool clusters the centrosomes and picks one cluster of centrosomes per cell for analysis. The cluster chosen is the one shown with circles).
+
 6. You can change the threshold for the centrosome detection and cell segmentation. Increasing the threshold for the centrosome detection leads to fewer detections. Increasing the threshold for the cell segmentation leads to more cells.
+
 7. You can also make corrections to the centrosome detections and cell boundaries.
   1. You can make two kinds of corrections to the centrosome detections:
     1. You can add new centrosomes by first clicking the `Add centrosomes` button and then clicking to add centrosomes.

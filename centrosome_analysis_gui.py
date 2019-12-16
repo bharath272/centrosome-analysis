@@ -620,13 +620,15 @@ class AnalysisGUI:
 
     def load_foci_model(self):
         foci_model_file = askopenfilename(initialdir='.')
-        self.foci_model = centrosome_analysis_backend.load_foci_model(foci_model_file)
-        messagebox.showinfo('','Centrosome detection model loaded')
+        if foci_model_file!='':
+            self.foci_model = centrosome_analysis_backend.load_foci_model(foci_model_file)
+            messagebox.showinfo('','Centrosome detection model loaded')
 
     def load_cell_model(self):
         cell_model_file = askopenfilename(initialdir='.')
-        self.ml_cell_segmentation_model = centrosome_analysis_backend.load_cell_model(cell_model_file)
-        messagebox.showinfo('','Cell segmentation model loaded')
+        if cell_model_file!='':
+            self.ml_cell_segmentation_model = centrosome_analysis_backend.load_cell_model(cell_model_file)
+            messagebox.showinfo('','Cell segmentation model loaded')
 
     def run_detection_model(self, img):
         if self.foci_model is None:
@@ -704,13 +706,19 @@ class AnalysisGUI:
 
 
     def run_ml_models(self):
+        chosen=True
         if self.pcm_channel_var.get()=='None':
-            tkinter.messagebox.showerror('Please choose channel containing PCM!')
+            tkinter.messagebox.showerror('Error','Please choose channel containing PCM!')
+            chosen=False
         if self.centrin_channel_var.get()=='None':
-            tkinter.messagebox.showerror('Please choose channel containing Centrin!')
+            tkinter.messagebox.showerror('Error', 'Please choose channel containing Centrin!')
+            chosen=False
         if self.dapi_channel_var.get()=='None':
-            tkinter.messagebox.showerror('Please choose channel containing DAPI!')
+            tkinter.messagebox.showerror('Error','Please choose channel containing DAPI!')
+            chosen=False
 
+        if not chosen:
+            return
         pcm_channel = int(self.pcm_channel_var.get())-1
         centrin_channel = int(self.centrin_channel_var.get())-1
         dapi_channel = int(self.dapi_channel_var.get())-1
@@ -1116,8 +1124,7 @@ class AnalysisGUI:
 
             self.draw_cell_boundary()
             self.line = []
-            for l in self.plot_line:
-                l.remove()
+            
         elif mode=='merge':
             cellid = self.cell_map[int(event.ydata), int(event.xdata)]
             self.to_merge.append(cellid)

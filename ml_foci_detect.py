@@ -107,7 +107,7 @@ class FociDataset(torch.utils.data.Dataset):
             shape = int(img.shape[1]/stride), int(img.shape[2]/stride)
             labelmap = np.zeros(shape)
             weights = np.ones(shape)
-            print(shape)
+
             y, x = np.unravel_index(np.arange(labelmap.size), labelmap.shape)
             pts = np.concatenate((x.astype(float).reshape((-1,1)),y.astype(float).reshape((-1,1))),axis=1)
             dist = pairwise_distances(pts, pos_locations)
@@ -116,7 +116,7 @@ class FociDataset(torch.utils.data.Dataset):
             weights[mindist<5]=0
             weights[mindist<1]=1000
 
-            print(labelmap.shape, labelmap.shape)
+
             self.images.append(img[np.newaxis,:,:,:].astype(float))
             self.labelmaps.append(labelmap[np.newaxis,:,:])
             self.weights.append(weights[np.newaxis,:,:])
@@ -124,7 +124,6 @@ class FociDataset(torch.utils.data.Dataset):
         self.images = np.concatenate(self.images, axis=0)
         self.labelmaps = np.concatenate(self.labelmaps, axis=0)
         self.weights = np.concatenate(self.weights, axis=0)
-        print(self.images.shape, self.labelmaps.shape, self.weights.shape)
         mean = np.mean(self.images)
         self.images = self.images - mean
         std = np.std(self.images)
@@ -180,7 +179,7 @@ def train_model_fcn(model, train_files,batchsize=1, need_sigmoid=False, \
     dataset = FociDataset(train_files)
     data_loader = torch.utils.data.DataLoader(dataset, batch_size=batchsize,shuffle=True)
 
-    
+
     if not os.path.isdir(checkpointdir):
         os.makedirs(checkpointdir)
 
@@ -202,7 +201,6 @@ def train_model_fcn(model, train_files,batchsize=1, need_sigmoid=False, \
             if gamma is not None:
                 weight = compute_focal_loss_weights(pred_var,y_var, gamma)
                 weight = weight*w
-            print(x_var.shape, pred_var.shape, y_var.shape, weight.shape)
             if need_sigmoid:
                 loss_val = F.binary_cross_entropy_with_logits(pred_var[:,0,:,:],y_var, weight=weight)
             else:
@@ -247,13 +245,11 @@ def apply_model(model,img, mean, std, median_filt=False, synthetic_noise=0):
     mean = np.mean(img)
     std = np.std(img)
 
-    print(img.shape)
     imshape = img.shape
     if median_filt:
         img = medfilt(img, 3)
     img = (img - mean)/std
     img = img[np.newaxis, :2,:,:]
-    print(img.shape)
     img = img + np.random.randn(*img.shape)*synthetic_noise
     img = Variable(torch.Tensor(img))
     output = model(img)

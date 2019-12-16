@@ -38,6 +38,7 @@ Analysis can be performed through the following steps.
 5. Next, click on `Run ML models` to run the centrosome detector and the cell segmentation. These models will be run on the image and the results displayed as an overlay on the image. The cell segmentation will be shown as colored boundaries, with the boundaries being thick if the model thinks the cell is centrosome-amplified (more than 4 centrosomes detected). Centrosomes will be depicted either as circles or with a `+` sign (the tool clusters the centrosomes and picks one cluster of centrosomes per cell for analysis. The cluster chosen is the one shown with circles).
 6. Ypu can change the threshold for the centrosome detection and cell segmentation. Increasing the threshold for the centrosome detection leads to fewer detections. Increasing the threshold for the cell segmentation leads to more cells.
 7. You can also make corrections to the centrosome detections and cell boundaries.
+
   1. You can make two kinds of corrections to the centrosome detections:
     1. You can add new centrosomes by first clicking the `Add centrosomes` button and then clicking to add centrosomes.
     2. You can remove spurious foci by first clicking the `Remove centrosomes` button and then clicking on the spurious centrosomes.

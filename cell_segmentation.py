@@ -6,6 +6,7 @@ from skimage.feature import peak_local_max
 from skimage.segmentation import random_walker, watershed
 from scipy.signal import convolve2d
 from skimage.transform import resize
+from itertools import permutations
 def create_tree(cellprobs):
     thresh = np.arange(0.99,0.0,-0.01)
     count=0
@@ -73,18 +74,28 @@ def compute_cell_bmap(cell_probs):
     gmag = np.sqrt(gx**2 + gy**2)
     gmag = gmag>0
     D = {}
+    P = {}
     y, x = np.where(gmag)
     for i in range(y.size):
         nearby_labels = np.unique(segments[y[i]-1:y[i]+2, x[i]-1:x[i]+2])
         t = tuple(nearby_labels)
         if t in D.keys():
             D[t].append([y[i],x[i]])
+            P[t].append(np.min(cell_probs[y[i]-1:y[i]+2, x[i]-1:x[i]+2]))
         else:
             D[t] = [[y[i],x[i]]]
+            P[t] = [np.min(cell_probs[y[i]-1:y[i]+2, x[i]-1:x[i]+2])]
     bmap = np.zeros(cell_probs.shape)
     for t in D.keys():
         coords = np.array(D[t])
-        score = np.mean(cell_probs[coords[:,0], coords[:,1]])
+
+        #if 2-way boundary:
+        if len(t)<3:
+            score = np.mean(np.array(P[t]))
+        else:
+            perms = permutations(t, 2)
+            perms = [np.mean(P[t]) for t in perms if t in P.keys()]
+            score = np.min(perms)
         bmap[coords[:,0],coords[:,1]] = 1-score
     bmap[0,:] = 1
     bmap[-1,:] = 1

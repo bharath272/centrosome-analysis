@@ -121,19 +121,19 @@ class FociDataset(torch.utils.data.Dataset):
             self.labelmaps.append(labelmap[np.newaxis,:,:])
             self.weights.append(weights[np.newaxis,:,:])
 
-        self.images = np.concatenate(self.images, axis=0)
-        self.labelmaps = np.concatenate(self.labelmaps, axis=0)
-        self.weights = np.concatenate(self.weights, axis=0)
-        mean = np.mean(self.images)
-        self.images = self.images - mean
-        std = np.std(self.images)
-        self.images = self.images/std
-        self.mean_std = (mean,std)
+        #self.images = np.concatenate(self.images, axis=0)
+        #self.labelmaps = np.concatenate(self.labelmaps, axis=0)
+        #self.weights = np.concatenate(self.weights, axis=0)
+        #mean = np.mean(self.images)
+        #self.images = self.images - mean
+        #std = np.std(self.images)
+        #self.images = self.images/std
+        #self.mean_std = (mean,std)
         self.ally, self.allx = np.unravel_index(np.arange(2048**2), (2048,2048))
 
     def __getitem__(self,i):
         notdone=True
-        img = self.images[i,:,:,:].copy()
+        img = self.images[i][0,:,:,:].copy()
         img = img + np.random.randn(*img.shape)*np.random.rand(1)*0.1
 
         #random data augmentation using scale and bias
@@ -142,27 +142,27 @@ class FociDataset(torch.utils.data.Dataset):
         img = img*scale + bias
 
         #add spurious negative foci
-        num_spurious = np.random.choice(10)
+        #num_spurious = np.random.choice(10)
 
-        for _ in range(num_spurious):
-            x = np.random.choice(img.shape[1])
-            y = np.random.choice(img.shape[2])
-            c = np.random.choice(2)
-            w = np.random.rand()*200
-            sigma = np.random.rand()*10
-            dist = (self.allx-x)**2 + (self.ally-y)**2
-            gauss = np.exp(-dist/(2*sigma*sigma))
-            img[c,:,:] = img[c,:,:] + w*gauss.reshape((img.shape[1],img.shape[2]))
+        #for _ in range(num_spurious):
+        #    x = np.random.choice(img.shape[1])
+        #    y = np.random.choice(img.shape[2])
+        #    c = np.random.choice(2)
+        #    w = np.random.rand()*200
+        #    sigma = np.random.rand()*10
+        #    dist = (self.allx-x)**2 + (self.ally-y)**2
+        #    gauss = np.exp(-dist/(2*sigma*sigma))
+        #    img[c,:,:] = img[c,:,:] + w*gauss.reshape((img.shape[1],img.shape[2]))
 
         img = torch.Tensor(img)
-        labelmap = self.labelmaps[i,:,:]
+        labelmap = self.labelmaps[i][0,:,:]
         labelmap = torch.Tensor(labelmap)
-        weight = self.weights[i,:,:]
+        weight = self.weights[i][0,:,:]
         weight = torch.Tensor(weight)
         return img, labelmap,weight
 
     def __len__(self):
-        return self.images.shape[0]
+        return len(self.images)
 
 
 def compute_focal_loss_weights(scores, targets,gamma):
@@ -207,7 +207,7 @@ def train_model_fcn(model, train_files,batchsize=1, need_sigmoid=False, \
                 loss_val = F.binary_cross_entropy(pred_var[:,0,:,:],y_var, weight=weight)
             loss_val.backward()
             optimizer.step()
-            total_loss = total_loss + loss_val.data[0]
+            total_loss = total_loss + loss_val.item()
 
             pred_scores = pred_var.data.numpy()
             pred_scores = pred_scores.reshape(-1)
@@ -328,11 +328,11 @@ def rescore_and_nms_dets(img, scores, maxdet):
 
 
 
-def save_dets(model, rootdir, files, outdir, mean, std, median_filt=False, maxdet=500, synthetic_noise=0):
+def save_dets(model, imgs, outdir, mean=0, std=1, median_filt=False, maxdet=500, synthetic_noise=0):
     if not os.path.isdir(outdir):
         os.makedirs(outdir)
-    imgs = [os.path.join(rootdir, 'imgs', x+'.tif') for x in files]
-    outputs = [os.path.join(outdir, x+'.json') for x in files]
+    stems=[os.path.splitext(os.path.basename(x))[0] for x in imgs]
+    outputs = [os.path.join(outdir, x+'.json') for x in stems]
     for i, impath in enumerate(imgs):
         img = tifffile.imread(impath)
 

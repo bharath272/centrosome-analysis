@@ -17,7 +17,6 @@ def evaluate_single(annotfile, detfile, dist_thresh=2, allow_duplicates=False):
         return [],[],[],0
 
     gtfoci = np.concatenate(gtfoci, axis=0)
-    print(gtfoci)
 
     with open(detfile, 'r') as f:
         dets = json.load(f)
@@ -65,8 +64,6 @@ def evaluate_PR(scores, labels, idsdet,total):
     scores = scores[idx]
     labels = labels[idx]
     idsdet = [idsdet[i] for i in idx]
-    print(labels[:3])
-    print(idsdet[:3])
     tp = np.cumsum(labels).astype(float)
     fp = np.cumsum(~labels).astype(float)
     prec = tp/(tp+fp)
@@ -77,9 +74,7 @@ def evaluate_PR(scores, labels, idsdet,total):
         rec[i] = len(idsdet2)/float(total)
     return prec,rec
 
-def evaluate_all(rootdir, detdir, files, dist_thresh=2, allow_duplicates=False):
-    annotfiles = [os.path.join(rootdir, 'annots',x+'.json') for x in files]
-    detfiles = [os.path.join(detdir, x+'.json') for x in files]
+def evaluate_all(annotfiles, detfiles, dist_thresh=2, allow_duplicates=False):
     foci_scores = []
     labels = []
     gtids = []

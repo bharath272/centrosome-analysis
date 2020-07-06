@@ -27,11 +27,11 @@ import centrosome_analysis_backend
 import cell_segmentation
 
 def get_colors():
-    colors = [[0,1,0],\
+    colors = [[1,1,0],\
     [1,0,0],\
     [0,1,1],\
     [1,0,1],\
-    [1,1,0],\
+    [0,1,0],\
     [1,1,1],\
     [0,0,0.5],\
     [0,0.5,0],\
@@ -190,8 +190,8 @@ class ChooseChannelOrder:
         self.scalelabel = tkinter.Label(self.scaleframe, text='1 pixel = how many microns?')
         self.scalelabel.pack(side=tkinter.LEFT)
         self.scaleentry = tkinter.Entry(self.scaleframe, textvariable=self.scalevar)
-        self.scaleentry.pack(side=tkinter.LEFT)
 
+        self.scaleentry.pack(side=tkinter.LEFT)
         self.okbutton = tkinter.Button(self.top, text="OK", command=self.done)
         self.okbutton.pack(side=tkinter.TOP)
         self.top.grab_set()
@@ -210,7 +210,89 @@ class ChooseChannelOrder:
 
 
 
+class ScrolledWindow(ttk.Frame):
+    """
+    Code for this class by Mikhail T., posted here: "https://stackoverflow.com/questions/16188420/tkinter-scrollbar-for-frame"
+    1. Master widget gets scrollbars and a canvas. Scrollbars are connected
+    to canvas scrollregion.
 
+    2. self.scrollwindow is created and inserted into canvas
+
+    Usage Guideline:
+    Assign any widgets as children of <ScrolledWindow instance>.scrollwindow
+    to get them inserted into canvas
+
+    __init__(self, parent, canv_w = 400, canv_h = 400, *args, **kwargs)
+    docstring:
+    Parent = master of scrolled window
+    canv_w - width of canvas
+    canv_h - height of canvas
+
+    """
+
+
+    def __init__(self, parent, canv_w = 400, canv_h = 400, *args, **kwargs):
+        """Parent = master of scrolled window
+        canv_w - width of canvas
+        canv_h - height of canvas
+
+       """
+        super().__init__(parent, *args, **kwargs)
+
+        self.parent = parent
+
+        # creating a scrollbars
+        self.xscrlbr = ttk.Scrollbar(self.parent, orient = 'horizontal')
+        self.xscrlbr.pack(side=tkinter.BOTTOM)
+        self.yscrlbr = ttk.Scrollbar(self.parent)
+        self.yscrlbr.pack(side=tkinter.RIGHT)
+        # creating a canvas
+        self.canv = tkinter.Canvas(self.parent)
+        self.canv.config(relief = 'flat',
+                         width = 10,
+                         heigh = 10, bd = 2)
+        # placing a canvas into frame
+        self.canv.pack(side=tkinter.LEFT)
+        # accociating scrollbar comands to canvas scroling
+        self.xscrlbr.config(command = self.canv.xview)
+        self.yscrlbr.config(command = self.canv.yview)
+
+        # creating a frame to inserto to canvas
+        self.scrollwindow = ttk.Frame(self.parent)
+
+        self.canv.create_window(0, 0, window = self.scrollwindow, anchor = 'nw')
+
+        self.canv.config(xscrollcommand = self.xscrlbr.set,
+                         yscrollcommand = self.yscrlbr.set,
+                         scrollregion = (0, 0, 100, 100))
+
+        self.yscrlbr.lift(self.scrollwindow)
+        self.xscrlbr.lift(self.scrollwindow)
+        self.scrollwindow.bind('<Configure>', self._configure_window)
+        self.scrollwindow.bind('<Enter>', self._bound_to_mousewheel)
+        self.scrollwindow.bind('<Leave>', self._unbound_to_mousewheel)
+
+        return
+
+    def _bound_to_mousewheel(self, event):
+        self.canv.bind_all("<MouseWheel>", self._on_mousewheel)
+
+    def _unbound_to_mousewheel(self, event):
+        self.canv.unbind_all("<MouseWheel>")
+
+    def _on_mousewheel(self, event):
+        self.canv.yview_scroll(int(-1*(event.delta/120)), "units")
+
+    def _configure_window(self, event):
+        # update the scrollbars to match the size of the inner frame
+        size = (self.scrollwindow.winfo_reqwidth(), self.scrollwindow.winfo_reqheight())
+        self.canv.config(scrollregion='0 0 %s %s' % size)
+        if self.scrollwindow.winfo_reqwidth() != self.canv.winfo_width():
+            # update the canvas's width to fit the inner frame
+            self.canv.config(width = self.scrollwindow.winfo_reqwidth())
+        if self.scrollwindow.winfo_reqheight() != self.canv.winfo_height():
+            # update the canvas's width to fit the inner frame
+            self.canv.config(height = self.scrollwindow.winfo_reqheight())
 
 
 
@@ -225,7 +307,8 @@ class AnalysisGUI:
         #self.eb3radii = 0.13*np.arange(20,121,20)
 
 
-        self.master = master
+        self.sw = ScrolledWindow(master)
+        self.master = self.sw.scrollwindow
 
         #variables
         self.modevar = tkinter.StringVar()
@@ -309,7 +392,6 @@ class AnalysisGUI:
         #Canvas
         self.fig = Figure(figsize=(7, 5), dpi=100)
         self.ax = self.fig.add_subplot(111)
-
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.master)
         self.canvas.get_tk_widget().pack(side=tkinter.LEFT, expand=1)
         self.zoom_bbox = None
@@ -328,10 +410,11 @@ class AnalysisGUI:
 
 
         self.set_styles()
-        self.menubar = tkinter.Menu(master=self.master)
+        self.menubar = tkinter.Menu(master=master)
 
-        self.master.config(menu=self.menubar)
+        master.config(menu=self.menubar)
         self.create_file_menu()
+
         self.master_toolbar = ttk.Frame(master=self.master, style="BW.TFrame")
         self.master_toolbar.pack(side=tkinter.RIGHT)
         self.toolbar_count=0
@@ -503,8 +586,6 @@ class AnalysisGUI:
         self.scalelabel.grid(row=2,column=5, sticky="E")
         self.scaleentry = ttk.Entry(self.parameter_toolbar, textvariable=self.scalevar, width=5)
         self.scaleentry.grid(row=2, column=6, sticky="W")
-        self.scaleset = ttk.Button(master=self.parameter_toolbar, text="Set", command=self.set_scale, style="TButton")
-        self.scaleset.grid(row=2,column=7, sticky="w")
 
         self.radiiframe = ttk.Frame(master=self.parameter_toolbar, padding=5,style="BW.TFrame")
         self.radiiframe.grid(row=3,columnspan=8, sticky="W,E")
@@ -725,7 +806,6 @@ class AnalysisGUI:
         pcm_channel = int(self.pcm_channel_var.get())-1
         centrin_channel = int(self.centrin_channel_var.get())-1
         dapi_channel = int(self.dapi_channel_var.get())-1
-        #img_analysis = self.img[[centrin_channel, pcm_channel, dapi_channel],:,:]
         img_analysis = self.img[[pcm_channel, centrin_channel, dapi_channel],:,:]
         self.modevar.set('Running foci detection')
         foci, foci_scores = self.run_detection_model(img_analysis)
@@ -758,7 +838,7 @@ class AnalysisGUI:
         self.final_detection_scores = self.detection_scores[idx]
         self.final_cell_labels = self.cell_labels[idx]
         self.amplified, self.chosen_for_analysis, self.labelids = centrosome_analysis_backend.cell_analysis(self.final_detections, self.final_cell_labels)
-        
+
 
     def redraw(self):
         self.draw(redraw_img=True)
@@ -852,18 +932,7 @@ class AnalysisGUI:
 
         self.ax.set_xlim(self.xlim[0],self.xlim[1])
         self.ax.set_ylim(self.ylim[1],self.ylim[0])
-        self.ax.set_xlabel('Pixels')
-        self.ax.set_ylabel('Pixels')
-        #scalebar
-        pixelscale = float(self.scalevar.get())
-        micron = 5./pixelscale
-        scalebarwidth = micron
-        scalebarheight = float(self.ylim[1]-self.ylim[0])*0.01
-        scalebarx = self.xlim[1]-scalebarwidth-0.05*(self.xlim[1]-self.xlim[0])
-        scalebary = self.ylim[1]-float(self.ylim[1]-self.ylim[0])*0.05
-        scalebar = Rectangle((scalebarx,scalebary),scalebarwidth,scalebarheight, fill=True, facecolor='w')
-        self.ax.add_patch(scalebar)
-        #QWERTY
+
         self.canvas.draw()
 
 
@@ -1060,8 +1129,7 @@ class AnalysisGUI:
         for c in cell_ids:
             D = distance_transform_edt(label!=c)
             D_fin = D + D_fin
-            Dinside = distance_transform_edt(label==c)
-            y, x = np.where(Dinside==np.max(Dinside))
+            y, x = np.where(label==c)
             z = np.concatenate((y.reshape((-1,1)), x.reshape((-1,1))),axis=1)
             coords.append(z)
         coords = np.concatenate(coords, axis=0)
@@ -1072,15 +1140,13 @@ class AnalysisGUI:
             cell_probs = self.cell_probabilities.copy()
             cell_probs[D_fin<=p] = 1
             cell_bmap = cell_segmentation.compute_cell_bmap(cell_probs)
-            cellmap = centrosome_analysis_backend.get_cell_map(cell_probs, cell_bmap, self.cell_probability_thresh)
+            cell_labels, cellmap = centrosome_analysis_backend.get_cell_labels(cell_bmap, cell_probs, self.detections, self.cell_probability_thresh)
             if len(np.unique(cellmap))==1:
                 continue
             if len(np.unique(cellmap[coords[:,0],coords[:,1]]))==1:
 
                 cell_id = np.unique(cellmap[coords[:,0],coords[:,1]])[0]
-
                 self.cell_probabilities = cell_probs
-
                 self.cell_bmap = cell_segmentation.compute_cell_bmap(cell_probs)
                 break
 
@@ -1266,9 +1332,6 @@ class AnalysisGUI:
             return
         self.cell_probability_thresh = float(self.cell_thresh_var.get())
         self.do_cell_analysis()
-        self.draw(redraw_img=True)
-
-    def set_scale(self):
         self.draw(redraw_img=True)
 
     def set_draw_mode(self):

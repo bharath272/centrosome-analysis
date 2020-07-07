@@ -180,7 +180,7 @@ def train_model_fcn(model, train_files,batchsize=1, need_sigmoid=False, \
     data_loader = torch.utils.data.DataLoader(dataset, batch_size=batchsize,shuffle=True)
 
 
-    if not os.path.isdir(checkpointdir):
+    if savecheckpoints and not os.path.isdir(checkpointdir):
         os.makedirs(checkpointdir)
 
     for epoch in range(num_epochs):
@@ -224,12 +224,12 @@ def train_model_fcn(model, train_files,batchsize=1, need_sigmoid=False, \
         rec = tp/(tp+fn)
         print('Epoch: {:d}, Loss: {:.3f}, Precision: {:.3f}, Recall: {:.3f}'.format(epoch,total_loss/(float(i+1)), prec,rec))
 
-
-        thisdir = os.path.join(checkpointdir, str(epoch))
-
-        if not os.path.isdir(thisdir):
-            os.makedirs(thisdir)
         if savecheckpoints:
+
+            thisdir = os.path.join(checkpointdir, str(epoch))
+
+            if not os.path.isdir(thisdir):
+                os.makedirs(thisdir)
             torch.save(model.state_dict(), os.path.join(thisdir, 'weights.pt'))
 
 

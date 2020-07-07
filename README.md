@@ -65,3 +65,10 @@ Analysis can be performed through the following steps.
 
 7. You can now make choices pertaining to the kind of analysis you want to make. Once you have decided the kind of analysis needed and the various parameters of this analysis, click on `Analyze and save` to finish the analysis and save the results. For the first image in a session, you will be prompted for the filename you want to save it to. The filename must be a `csv` file. If the file exists, new results will be appended to the previous results.
 
+# Re-training
+
+If you have saved enough corrections (e.g., at least 10 images), then the corrections can be used to re-train the centrosome detector. When you save corrections, these will be saved as json files. Create a csv file (comma-separated values, this can be done in Excel) with two columns and no headers. The first column should contain the full path to each image, and the second column should contain the full path to the corresponding corrected annotations. An example of such a csv is given in `sample-retraining.csv` 
+Once you have created such a csv (say `training_files.csv`), you can run the following command to retrain:
+```
+python train_foci_detector.py --trainfiles training_files.csv --modelfile foci_model_retrained.pt
+```

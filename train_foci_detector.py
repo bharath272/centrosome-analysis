@@ -22,7 +22,7 @@ if __name__=='__main__':
         trainfiles = f.readlines()
     trainfiles = [x.strip().split(',') for x in trainfiles]
 
-    if not os.path.isdir(params.checkpointdir):
+    if not os.path.isdir(params.checkpointdir) and params.savecheckpoints:
         os.makedirs(params.checkpointdir)
 
     model = ml_foci_detect.MultiChannelCombinedScorer()

@@ -25,7 +25,7 @@ import torch
 from tkinter import messagebox
 import centrosome_analysis_backend
 import cell_segmentation
-
+import functools
 def get_colors():
     colors = [[1,1,0],\
     [1,0,0],\
@@ -329,6 +329,9 @@ class AnalysisGUI:
         self.show_detections_var = tkinter.IntVar()
         self.show_detections_var.set(1)
         self.show_dets=1
+        self.show_ciliated_var = tkinter.IntVar()
+        self.show_ciliated_var.set(1)
+        self.show_ciliated=1
         self.show_channel1_var = tkinter.IntVar()
         self.show_channel1_var.set(1)
         self.show_channel1=1
@@ -439,6 +442,9 @@ class AnalysisGUI:
         #amplified toolbar
         self.create_amplified_toolbar(3,1)
 
+        #ciliated toolbar
+        self.create_ciliated_toolbar(3,2)
+
         #vis toolbar
         self.create_vis_toolbar(4)
 
@@ -454,6 +460,8 @@ class AnalysisGUI:
         self.foci_model = None
         self.ml_cell_segmentation_model = None
         self.ml_model_has_run=False
+        self.cell_map = None
+        self.ciliated = None
         tkinter.mainloop()
 
 
@@ -481,18 +489,18 @@ class AnalysisGUI:
 
     def create_zoom_toolbar(self, r, c):
         self.zoom_toolbar = ttk.Frame(master=self.master_toolbar, style="TFrame",padding=5)
-        self.zoom_toolbar.grid(row=r,column=c, sticky="W,E,N,S")
+        self.zoom_toolbar.grid(row=r,column=c, sticky="W,E")
         self.zoom_label = ttk.Label(master=self.zoom_toolbar, text="Zoom", style="Italic.TLabel")
         self.zoom_label.grid(row=0,column=0,sticky="W")
         self.zoombutton = ttk.Button(master=self.zoom_toolbar, text="Zoom", command=self.set_zoom_mode, style="TButton")
         self.zoombutton.grid(row=1,column=0)
         self.resetbutton = ttk.Button(master=self.zoom_toolbar, text="Reset zoom", command=self.reset_zoom, style="TButton")
-        self.resetbutton.grid(row=1,column=1)
+        self.resetbutton.grid(row=2,column=0)
 
 
     def create_cell_segmentation_toolbar(self,r,c):
         self.cell_segmentation_toolbar = ttk.Frame(master=self.master_toolbar, style="TFrame", padding=5)
-        self.cell_segmentation_toolbar.grid(row=r,column=c, sticky="W,E")
+        self.cell_segmentation_toolbar.grid(row=r,column=c, columnspan=2,sticky="W,E")
         self.cell_seg_label = ttk.Label(master=self.cell_segmentation_toolbar, text="Cell manipulation", style="Italic.TLabel")
         self.cell_seg_label.grid(row=0,column=0,sticky="W")
 
@@ -515,7 +523,7 @@ class AnalysisGUI:
         self.correctbutton = ttk.Button(master=self.foci_toolbar, text="Remove foci", command=self.set_correct_mode, style="TButton")
         self.correctbutton.grid(row=1,column=0, sticky="W")
         self.addbutton = ttk.Button(master=self.foci_toolbar, text="Add centrosomes", command=self.set_add_mode,style="TButton")
-        self.addbutton.grid(row=1,column=1)
+        self.addbutton.grid(row=2,column=0)
 
     def create_amplified_toolbar(self,r,c):
         self.amplified_toolbar = ttk.Frame(master=self.master_toolbar, style="TFrame", padding=5)
@@ -525,12 +533,22 @@ class AnalysisGUI:
         self.amplifiedbutton = ttk.Button(master=self.amplified_toolbar, text="Mark cells as amplified", command=self.set_amplified_mode, style="TButton")
         self.amplifiedbutton.grid(row=1,column=0, sticky="W")
         self.notamplifiedbutton = ttk.Button(master=self.amplified_toolbar, text="Mark cells as not amplified", command=self.set_notamplified_mode, style="TButton")
-        self.notamplifiedbutton.grid(row=1, column=1, sticky="W")
+        self.notamplifiedbutton.grid(row=2, column=0, sticky="W")
+
+    def create_ciliated_toolbar(self,r,c):
+        self.ciliated_toolbar = ttk.Frame(master=self.master_toolbar, style="TFrame", padding=5)
+        self.ciliated_toolbar.grid(row=r,column=c, sticky="W,E")
+        self.ciliated_label = ttk.Label(master=self.ciliated_toolbar, text="Ciliated?", style="Italic.TLabel")
+        self.ciliated_label.grid(row=0,column=0, sticky="W")
+        self.ciliatedbutton = ttk.Button(master=self.ciliated_toolbar, text="Mark cells as ciliated", command=self.set_ciliated_mode, style="TButton")
+        self.ciliatedbutton.grid(row=1,column=0, sticky="W")
+        self.notciliatedbutton = ttk.Button(master=self.ciliated_toolbar, text="Mark cells as not ciliated", command=self.set_notciliated_mode, style="TButton")
+        self.notciliatedbutton.grid(row=2, column=0, sticky="W")
 
 
     def create_vis_toolbar(self,r):
         self.vis_toolbar = ttk.Frame(master=self.master_toolbar, style="TFrame", padding=5)
-        self.vis_toolbar.grid(row=r, columnspan=2, sticky="W,E")
+        self.vis_toolbar.grid(row=r, columnspan=3, sticky="W,E")
         self.vis_label = ttk.Label(master=self.vis_toolbar, text="Visualization", style="Italic.TLabel")
         self.vis_label.grid(row=0,column=0, sticky="W")
 
@@ -538,6 +556,8 @@ class AnalysisGUI:
         self.togglecellbutton.grid(row=1,column=0, sticky="W")
         self.toggledetbutton = ttk.Checkbutton(master=self.vis_toolbar, variable=self.show_detections_var, text="Show centrosomes", command=self.toggle_dets)
         self.toggledetbutton.grid(row=1,column=1, sticky="W")
+        self.toggleciliatedbutton = ttk.Checkbutton(master=self.vis_toolbar, variable=self.show_ciliated_var, text="Show ciliated/not ciliated", command=self.toggle_ciliated)
+        self.toggleciliatedbutton.grid(row=1,column=2, sticky="W")
 
         # self.togglechannel1button = tkinter.Checkbutton(master=self.vis_toolbar, variable=self.show_channel1_var, text="Show channel 1", command=self.toggle_channel1)
         # self.togglechannel1button.grid(row=2,column=0, sticky="W")
@@ -559,7 +579,7 @@ class AnalysisGUI:
 
     def create_parameter_toolbar(self,r):
         self.parameter_toolbar = ttk.Frame(master=self.master_toolbar, style="TFrame", padding=5)
-        self.parameter_toolbar.grid(row=r, columnspan=2,sticky="W,E")
+        self.parameter_toolbar.grid(row=r, columnspan=3,sticky="W,E")
         self.parameter_label = ttk.Label(master=self.parameter_toolbar, text="Parameters", style="Italic.TLabel")
         self.parameter_label.grid(row=0,column=0, sticky="W")
         self.numdetlabel = ttk.Label(master=self.parameter_toolbar, text="Centrosomal foci threshold")
@@ -636,7 +656,7 @@ class AnalysisGUI:
 
     def create_channel_toolbar(self,r):
         self.channel_toolbar = ttk.Frame(master=self.master_toolbar, style="TFrame", padding=5)
-        self.channel_toolbar.grid(row=r,columnspan=2, sticky="W,E")
+        self.channel_toolbar.grid(row=r,columnspan=3, sticky="W,E")
         self.channel_label = ttk.Label(master=self.channel_toolbar, text="Channels",style="Italic.TLabel")
         self.channel_label.grid(row=0,sticky="W")
 
@@ -688,13 +708,13 @@ class AnalysisGUI:
         return bmap
 
     def render_boundary(self):
-        labelids = self.labelids
+        unique_cells_with_foci = self.unique_cells_with_foci
         amplified = self.amplified
         bmap = np.zeros((self.cell_map.shape[0], self.cell_map.shape[1],3))
-        for i,l in enumerate(labelids):
+        for i,l in enumerate(unique_cells_with_foci):
             if l==0:
                 continue
-            if amplified[i]:
+            if amplified[l]:
                 margin=15
             else:
                 margin=5
@@ -829,15 +849,34 @@ class AnalysisGUI:
             return
 
         if reestimate_boundaries:
-            self.cell_map = centrosome_analysis_backend.get_cell_map(self.cell_probabilities, self.cell_bmap, self.cell_probability_thresh)
+            if self.cell_map is not None:
+                old_cell_map = self.cell_map.copy()
+                old_unique_cells = self.unique_cells.copy()
+                old_ciliated = self.ciliated.copy()
+            self.cell_map, self.unique_cells = centrosome_analysis_backend.get_cell_map(self.cell_probabilities, self.cell_bmap, self.cell_probability_thresh)
             self.get_all_boundaries()
+            if self.ciliated is None:
+                self.ciliated = {x:0 for x in self.unique_cells}
+            else:
+                self.ciliated = {}
+                for cellid in self.unique_cells:
+                    oldcellids = np.unique(old_cell_map[self.cell_map==cellid])
+                    oldcellids = [x for x in oldcellids if x!=0]
+                    if len(oldcellids)>0:
+                        self.ciliated[cellid] = functools.reduce(lambda x,y:max(x,y), [old_ciliated[x] for x in oldcellids])
+
+
+
+
+
         self.cell_labels = centrosome_analysis_backend.get_cell_labels(self.cell_map, self.detections)
 
         idx = (self.detection_scores>self.det_thresh) & (self.labels==1)
         self.final_detections = self.detections[idx,:]
         self.final_detection_scores = self.detection_scores[idx]
         self.final_cell_labels = self.cell_labels[idx]
-        self.amplified, self.chosen_for_analysis, self.labelids = centrosome_analysis_backend.cell_analysis(self.final_detections, self.final_cell_labels)
+        self.unique_cells_with_foci = np.unique(self.final_cell_labels)
+        self.amplified, self.chosen_for_analysis = centrosome_analysis_backend.cell_analysis(self.final_detections, self.final_cell_labels, self.unique_cells_with_foci)
 
 
     def redraw(self):
@@ -914,13 +953,16 @@ class AnalysisGUI:
 
                 F = self.final_detections
                 C = self.chosen_for_analysis
-                labelids = self.labelids
+                unique_cells_with_foci = self.unique_cells_with_foci
+
                 if self.show_dets:
-                    for i, k in enumerate(labelids):
+                    for i, k in enumerate(unique_cells_with_foci):
                         G = F[(self.final_cell_labels==k) & C,:]
                         self.ax.scatter(G[:,0], G[:,1], 15, edgecolor=self.colors[i,:], facecolor='None')
                         G = F[(self.final_cell_labels==k) & ~C,:]
                         self.ax.scatter(G[:,0], G[:,1], 15, facecolor=self.colors[i,:], marker='+')
+                if self.show_ciliated:
+                    self.draw_ciliated()
             else:
                 self.ax.imshow(self.imgdisp)
 
@@ -935,6 +977,21 @@ class AnalysisGUI:
 
         self.canvas.draw()
 
+
+
+    def draw_ciliated_h(self, labelid, text):
+        bmap = self.cell_map==labelid
+        dist = distance_transform_edt(bmap)
+        y,x = np.unravel_index(np.argmax(dist.reshape(-1)),dist.shape)
+        self.ax.text(x,y,text, fontdict=dict(fontsize=12, color='w'))
+
+    def draw_ciliated(self):
+
+        for i in self.unique_cells_with_foci:
+            if self.ciliated[i]==0:
+                self.draw_ciliated_h(i, 'NC')
+            elif self.ciliated[i]==1:
+                self.draw_ciliated_h(i, 'C')
 
     def final_analysis(self):
         pixelscale = float(self.scalevar.get())
@@ -1013,7 +1070,7 @@ class AnalysisGUI:
 
 
         intensities, areas, densities, radii = self.analysis_outcomes
-        centrosome_analysis_backend.save_to_csv(self.open_file, self.save_file, intensities, areas, densities, self.amplified, radii)
+        centrosome_analysis_backend.save_to_csv(self.open_file, self.save_file, intensities, areas, densities, radii, self.ciliated, self.amplified,self.unique_cells_with_foci)
         tkinter.messagebox.showinfo("Finished", "Analysis results have been saved.")
 
 
@@ -1140,12 +1197,13 @@ class AnalysisGUI:
             cell_probs = self.cell_probabilities.copy()
             cell_probs[D_fin<=p] = 1
             cell_bmap = cell_segmentation.compute_cell_bmap(cell_probs)
-            cell_labels, cellmap = centrosome_analysis_backend.get_cell_labels(cell_bmap, cell_probs, self.detections, self.cell_probability_thresh)
-            if len(np.unique(cellmap))==1:
-                continue
-            if len(np.unique(cellmap[coords[:,0],coords[:,1]]))==1:
+            cell_map, unique_cells = centrosome_analysis_backend.get_cell_map(cell_probs, cell_bmap, self.cell_probability_thresh)
 
-                cell_id = np.unique(cellmap[coords[:,0],coords[:,1]])[0]
+            if len(np.unique(cell_map))==1:
+                continue
+            if len(np.unique(cell_map[coords[:,0],coords[:,1]]))==1:
+
+                cell_id = np.unique(cell_map[coords[:,0],coords[:,1]])[0]
                 self.cell_probabilities = cell_probs
                 self.cell_bmap = cell_segmentation.compute_cell_bmap(cell_probs)
                 break
@@ -1166,9 +1224,8 @@ class AnalysisGUI:
             return
         labelid = self.cell_map[int(y), int(x)]
 
-        if labelid in self.labelids:
-            index = np.where(self.labelids==labelid)[0][0]
-            self.amplified[index] = 1
+        if labelid in self.unique_cells_with_foci:
+            self.amplified[labelid] = 1
             self.draw(redraw_img=True)
 
     def mark_as_not_amplified(self, x, y):
@@ -1176,10 +1233,27 @@ class AnalysisGUI:
             tkinter.messagebox.showerror('Run the ML model first!')
             return
         labelid = self.cell_map[int(y), int(x)]
-        if labelid in self.labelids:
-            index = np.where(self.labelids==labelid)[0][0]
-            self.amplified[index] = 0
+        if labelid in self.unique_cells_with_foci:
+            self.amplified[labelid] = 0
             self.draw(redraw_img=True)
+
+    def mark_as_ciliated(self, x, y):
+        if not self.ml_model_has_run:
+            tkinter.messagebox.showerror('Run the ML model first!')
+            return
+        labelid = self.cell_map[int(y), int(x)]
+
+        self.ciliated[labelid] = 1
+        self.draw(redraw_img=True)
+
+    def mark_as_not_ciliated(self, x, y):
+        if not self.ml_model_has_run:
+            tkinter.messagebox.showerror('Run the ML model first!')
+            return
+        labelid = self.cell_map[int(y), int(x)]
+        self.ciliated[labelid] = 0
+        self.draw(redraw_img=True)
+
 
 
 
@@ -1216,6 +1290,10 @@ class AnalysisGUI:
             self.mark_as_amplified(event.xdata, event.ydata)
         elif mode=='not amplified':
             self.mark_as_not_amplified(event.xdata, event.ydata)
+        elif mode=='ciliated':
+            self.mark_as_ciliated(event.xdata, event.ydata)
+        elif mode=='not ciliated':
+            self.mark_as_not_ciliated(event.xdata, event.ydata)
 
 
 
@@ -1294,6 +1372,11 @@ class AnalysisGUI:
         self.show_dets = int(self.show_detections_var.get())
         self.draw(redraw_img=True)
 
+    def toggle_ciliated(self):
+        self.show_ciliated = int(self.show_ciliated_var.get())
+        self.draw(redraw_img=True)
+
+
     def toggle_channel1(self):
         self.show_channel1 = int(self.show_channel1_var.get())
         self.draw(redraw_img=True)
@@ -1355,7 +1438,19 @@ class AnalysisGUI:
         self.mode ='not amplified'
         self.modevar.set('Click on cell to mark as not amplified')
 
+    def set_ciliated_mode(self):
+        if not self.ml_model_has_run:
+            tkinter.messagebox.showerror('Error','Run ML model first!')
+            return
+        self.mode ='ciliated'
+        self.modevar.set('Click on cell to mark as ciliated')
 
+    def set_notciliated_mode(self):
+        if not self.ml_model_has_run:
+            tkinter.messagebox.showerror('Error','Run ML model first!')
+            return
+        self.mode ='not ciliated'
+        self.modevar.set('Click on cell to mark as not ciliated')
 
     def _quit(self):
         self.master.quit()     # stops mainloop

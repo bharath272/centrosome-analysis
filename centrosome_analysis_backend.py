@@ -43,7 +43,8 @@ def run_cell_model(img, ml_cell_segmentation_model, mean, std):
 
 def get_cell_map(cell_probabilities, bmap, boundary_thresh):
     cellmap = cell_segmentation.get_cells(cell_probabilities, bmap, 1-boundary_thresh)
-    return cellmap
+    unique_labels = np.unique(cellmap)
+    return cellmap, unique_labels
 
 def get_cell_labels(cellmap, detections):
     #bw = cell_probabilities>cell_probability_thresh
@@ -69,13 +70,13 @@ def get_avg_background(cell_bmap, img, centroid, bgradii):
 
     return avg
 
-def cell_analysis(detections, labels):
+def cell_analysis(detections, labels, unique_labels):
 
 
 
-    amplified = []
+    amplified = {}
     chosen_for_analysis = np.zeros(detections.shape[0], dtype=bool)
-    unique_labels = np.unique(labels)
+
     for l in unique_labels:
 
         this_cell = np.where(labels==l)[0]
@@ -83,7 +84,7 @@ def cell_analysis(detections, labels):
 
 
 
-        amplified.append(int(foci.shape[0]>4))
+        amplified[l] = int(foci.shape[0]>4)
 
         if len(this_cell)==1:
             chosen_for_analysis[this_cell[0]] = True
@@ -95,7 +96,7 @@ def cell_analysis(detections, labels):
         idx = np.argmax(counts)
 
         chosen_for_analysis[this_cell[T==idx]]=True
-    return amplified, chosen_for_analysis, unique_labels
+    return amplified, chosen_for_analysis
 
 def intensity_profile(img, detections, labels, chosen_for_analysis, cell_map,radii, bgradii):
     unique_labels = np.unique(labels)
@@ -169,11 +170,11 @@ def eb3_count_density(labeled_segments, eb3, detections, labels, chosen_for_anal
     return diff_counts_all, diff_areas_all, diff_densities_all
 
 
-def save_to_csv(open_file, save_file, intensities, areas, densities, amplified, radii):
+def save_to_csv(open_file, save_file, intensities, areas, densities,  radii, ciliated, amplified, unique_cells  ):
     save_areas_file = os.path.splitext(save_file)[0]+'-areas.csv'
     save_int_file = os.path.splitext(save_file)[0]+'-intensities.csv'
 
-    common_lines = [[open_file, str(i), str(a)] for i,a in enumerate(amplified) ]
+    common_lines = [[open_file, str(i), str(ciliated[i]), str(amplified[i])] for i in unique_cells ]
     intensity_lines = []
     area_lines = []
     density_lines = []
@@ -182,7 +183,7 @@ def save_to_csv(open_file, save_file, intensities, areas, densities, amplified, 
     area_lines = [','.join(common_lines[i] + [str(y) for y in x])+'\n' for i,x in enumerate(areas)]
     density_lines = [','.join(common_lines[i] + [str(y) for y in x]) + '\n' for i,x in enumerate(densities)]
     radii = [str(r) for r in radii]
-    headers = ['Filename', 'Cell id', 'Amplified?'] + radii
+    headers = ['Filename', 'Cell id', 'Ciliated?','Amplified?'] + radii
     headers = ','.join(headers) + '\n'
     if not os.path.isfile(save_file):
 

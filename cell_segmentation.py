@@ -53,13 +53,21 @@ def create_tree(cellprobs):
 
 def compute_cell_bmap(cell_probs):
     output=cell_probs
+    #output=output/np.max(output)
+    #np.save('/Users/bharath/research/temp.npy',output)
     output2 = output[::2,::2]
     local_maxi = peak_local_max(output2, indices=False, min_distance=5)
-    markers = ndi.label(local_maxi)[0]
-    markers[output2<0.01] = -1
-    segments = random_walker(output2, markers, tol=0.01)
+    markers = ndi.label(local_maxi, structure=np.ones((3,3)))[0]
+
+    maxscores = {}
+
+    #markers[output2<0.01] = -1
+    #segments = random_walker(output2, markers, tol=0.01)
+    segments = watershed(-output2, markers, mask=output2>0.01)
     segments = resize(segments, output.shape, order=0, preserve_range=True)
-    #segments = watershed(-output, markers)
+    for l in np.unique(segments):
+        maxscores[l] = np.max(output[segments==l])
+
     gx = convolve2d(segments, np.array([[1,0,-1]]), mode='same')
     gx[0,:] = 0
     gx[-1,:] = 0
@@ -79,15 +87,20 @@ def compute_cell_bmap(cell_probs):
     for i in range(y.size):
         nearby_labels = np.unique(segments[y[i]-1:y[i]+2, x[i]-1:x[i]+2])
         t = tuple(nearby_labels)
+
         if t in D.keys():
             D[t].append([y[i],x[i]])
-            P[t].append(np.min(cell_probs[y[i]-1:y[i]+2, x[i]-1:x[i]+2]))
+            P[t].append(cell_probs[y[i],x[i]])
         else:
             D[t] = [[y[i],x[i]]]
-            P[t] = [np.min(cell_probs[y[i]-1:y[i]+2, x[i]-1:x[i]+2])]
+            P[t] = [cell_probs[y[i], x[i]]]
     bmap = np.zeros(cell_probs.shape)
     for t in D.keys():
+
+        min_peak = np.min([maxscores[k] for k in t if k!=0])
         coords = np.array(D[t])
+
+
 
         #if 2-way boundary:
         if len(t)<3:
@@ -96,7 +109,11 @@ def compute_cell_bmap(cell_probs):
             perms = permutations(t, 2)
             perms = [np.mean(P[t]) for t in perms if t in P.keys()]
             score = np.min(perms)
-        bmap[coords[:,0],coords[:,1]] = 1-score
+
+        if 0 in t:
+            bmap[coords[:,0],coords[:,1]] = 1
+        else:
+            bmap[coords[:,0],coords[:,1]] = min_peak-score
     bmap[0,:] = 1
     bmap[-1,:] = 1
     bmap[:,0] = 1

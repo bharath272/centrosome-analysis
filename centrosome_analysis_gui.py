@@ -862,8 +862,11 @@ class AnalysisGUI:
                 for cellid in self.unique_cells:
                     oldcellids = np.unique(old_cell_map[self.cell_map==cellid])
                     oldcellids = [x for x in oldcellids if x!=0]
+
                     if len(oldcellids)>0:
                         self.ciliated[cellid] = functools.reduce(lambda x,y:max(x,y), [old_ciliated[x] for x in oldcellids])
+                    else:
+                        self.ciliated[cellid] = 0
 
 
 
